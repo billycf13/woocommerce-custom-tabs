@@ -26,24 +26,20 @@ add_action('before_woocommerce_init', function() {
 });
 
 // Inisialisasi plugin update checker
-if (!class_exists('Puc_v4_Factory')) {
-    require plugin_dir_path(__FILE__) . 'plugin-update-checker/plugin-update-checker.php';
-}
+require_once plugin_dir_path(__FILE__) . 'plugin-update-checker/plugin-update-checker.php';
+use YahnisElsts\PluginUpdateChecker\v5\PucFactory;
 
-$updateChecker = Puc_v4_Factory::buildUpdateChecker(
-    'https://github.com/billycf13/woocommerce-custom-tabs/', // URL repository GitHub
-    __FILE__, // File plugin utama
-    'custom-product-tabs-importer' // Slug unik plugin
+$myUpdateChecker = PucFactory::buildUpdateChecker(
+    'https://github.com/billycf13/woocommerce-custom-tabs/',
+    __FILE__,
+    'custom-product-tabs-importer'
 );
 
-// Set branch yang akan digunakan (opsional, default: master)
-$updateChecker->setBranch('main');
+// Set branch yang akan digunakan
+$myUpdateChecker->setBranch('main');
 
 // Mengatur update checker untuk membaca info dari release
-$updateChecker->getVcsApi()->enableReleaseAssets();
-
-// // Kalau repo private, aktifkan autentikasi:
-// $updateChecker->setAuthentication('YOUR_GITHUB_TOKEN');
+$myUpdateChecker->getVcsApi()->enableReleaseAssets();
 
 class Custom_Product_Tabs_Importer {
     private static $instance = null;
