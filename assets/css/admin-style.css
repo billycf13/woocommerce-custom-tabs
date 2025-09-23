@@ -1,0 +1,191 @@
+.custom_tab {
+    padding: 20px;
+    margin-bottom: 20px;
+    border: 1px solid #ddd;
+    background: #fff;
+}
+
+.custom_tab_options .button {
+    margin: 10px 0;
+}
+
+#custom_product_tabs_data {
+    padding: 1em;
+}
+
+.custom_tabs_container {
+    margin: 0;
+    padding: 0;
+}
+
+.custom_tab_fields {
+    padding: 1em;
+    border-bottom: 1px solid #eee;
+    position: relative;
+}
+
+.custom_tab_fields h3 {
+    margin: 0 0 1em;
+    padding: 0;
+    font-size: 1.15em;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.custom_tab_fields .form-field {
+    margin: 0 0 1em;
+}
+
+.custom_tab_fields .form-field label {
+    display: block;
+    margin: 0 0 0.5em;
+    font-weight: bold;
+}
+
+.custom_tab_fields .form-field input[type="text"],
+.custom_tab_fields .form-field input[type="number"] {
+    width: 100%;
+    max-width: 400px;
+}
+
+/* Styling untuk editor */
+.custom_tab_fields .wp-editor-container {
+    clear: both;
+    border: 1px solid #ddd;
+}
+
+.custom_tab_fields .wp-editor-area {
+    width: 100%;
+    min-height: 200px;
+    border: none;
+}
+
+/* Styling untuk toolbar editor */
+.custom_tab_fields .wp-editor-tools {
+    padding: 8px;
+    background: #f5f5f5;
+    border: 1px solid #ddd;
+    border-bottom: none;
+}
+
+/* Styling untuk media buttons */
+.custom_tab_fields .wp-media-buttons {
+    float: left;
+}
+
+/* Styling untuk tombol Visual/Code */
+.custom_tab_fields .wp-editor-tabs {
+    float: right;
+    display: block !important;
+}
+
+.custom_tab_fields .wp-switch-editor {
+    float: left;
+    box-sizing: content-box;
+    position: relative;
+    top: 1px;
+    padding: 3px 8px 4px;
+    margin: 0 0 0 5px;
+    font-size: 12px;
+    line-height: 1.46153846;
+    border: 1px solid #ddd;
+    background: #f5f5f5;
+}
+
+.custom_tab_fields .wp-switch-editor:first-child {
+    margin-left: 0;
+}
+
+.custom_tab_fields .switch-tmce {
+    border-bottom-color: #f5f5f5;
+}
+
+.custom_tab_fields .html-active .switch-html,
+.custom_tab_fields .tmce-active .switch-tmce {
+    border-bottom-color: #f5f5f5;
+    background: #f5f5f5;
+}
+
+/* Clearfix setelah editor */
+.custom_tab_fields .form-field:after {
+    content: "";
+    display: table;
+    clear: both;
+}
+
+/* Styling untuk mode switcher */
+.wp-editor-tabs button {
+    padding: 5px 15px;
+    background: #f7f7f7;
+    border: 1px solid #ddd;
+    border-bottom: none;
+    margin-left: 5px;
+    cursor: pointer;
+}
+
+.wp-editor-tabs button.active {
+    background: #fff;
+    border-bottom-color: #fff;
+}
+
+.custom_tab_fields .form-field:last-child {
+    margin-bottom: 0;
+}
+
+.custom_tab_fields .form-field label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.5em;
+    color: #23282d;
+}
+
+.custom_tab_fields .form-field input[type="text"],
+.custom_tab_fields .form-field input[type="number"],
+.custom_tab_fields .form-field textarea {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,.07);
+}
+
+.custom_tab_fields .form-field textarea {
+    min-height: 150px;
+    resize: vertical;
+}
+
+.add_custom_tab {
+    padding: 1em 0;
+    text-align: right;
+    margin: 0;
+}
+
+.add_custom_tab_button {
+    margin: 0 !important;
+}
+
+.remove_tab {
+    color: #a00 !important;
+    padding: 0 !important;
+    background: none !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+.remove_tab:hover {
+    color: #dc3232 !important;
+}
+
+/* Responsif untuk layar kecil */
+@media screen and (max-width: 782px) {
+    .custom_tab_fields .form-field input[type="text"],
+    .custom_tab_fields .form-field input[type="number"],
+    .custom_tab_fields .form-field textarea {
+        font-size: 16px;
+    }
+    
+    .custom_tab_fields h3 {
+        padding: 1em;
+    }
+}
