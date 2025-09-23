@@ -2,7 +2,16 @@
 /**
  * Plugin Name: WooCommerce Custom Product Tabs Importer
  * Plugin URI: https://github.com/billycf13/woocommerce-custom-tabs
- * Description: Menambahkan multiple tab kustom pada produk WooCommerce dengan dukungan import
+ * Description: <strong>WooCommerce Custom Product Tabs Importer</strong> memungkinkan Anda menambahkan tab kustom tak terbatas pada produk WooCommerce Anda dengan mudah. 
+ * Fitur utama: <ul style="list-style-type: none; padding-left: 20px; margin: 5px 0;">
+ * <li>✨ Editor visual (TinyMCE) dengan dukungan media uploader</li>
+ * <li>📝 Mode Code untuk pengeditan HTML langsung</li>
+ * <li>📥 Import/Export tab kustom via CSV</li>
+ * <li>🔄 Pengaturan prioritas untuk mengatur urutan tab</li>
+ * <li>🎨 Antarmuka admin yang user-friendly</li>
+ * <li>🔌 Kompatibel dengan WooCommerce HPOS</li>
+ * </ul>
+ * <em>Plugin ini dibuat untuk memudahkan pengelolaan konten produk WooCommerce Anda.</em>
  * Version: 1.0.1
  * Author: Billycf
  * Author URI: https://github.com/billycf13
@@ -492,3 +501,5 @@ class Custom_Product_Tabs_Importer {
 add_action('plugins_loaded', function() {
     Custom_Product_Tabs_Importer::get_instance();
 });
+
+// ... existing code ...
