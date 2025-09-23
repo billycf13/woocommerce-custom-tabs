@@ -1,11 +1,11 @@
 <?php
 /**
  * Plugin Name: WooCommerce Custom Product Tabs Importer
- * Plugin URI: https://xyawz.xyz
+ * Plugin URI: https://github.com/billycf13/woocommerce-custom-tabs
  * Description: Menambahkan multiple tab kustom pada produk WooCommerce dengan dukungan import
  * Version: 1.0.1
  * Author: Billycf
- * Author URI: 
+ * Author URI: https://github.com/billycf13
  * Text Domain: custom-product-tabs-importer
  * Domain Path: /languages
  * Requires at least: 5.8
@@ -24,6 +24,26 @@ add_action('before_woocommerce_init', function() {
         \Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility('custom_order_tables', __FILE__, true);
     }
 });
+
+// Inisialisasi plugin update checker
+if (!class_exists('Puc_v4_Factory')) {
+    require plugin_dir_path(__FILE__) . 'plugin-update-checker/plugin-update-checker.php';
+}
+
+$updateChecker = Puc_v4_Factory::buildUpdateChecker(
+    'https://github.com/billycf13/woocommerce-custom-tabs/', // URL repository GitHub
+    __FILE__, // File plugin utama
+    'custom-product-tabs-importer' // Slug unik plugin
+);
+
+// Set branch yang akan digunakan (opsional, default: master)
+$updateChecker->setBranch('main');
+
+// Mengatur update checker untuk membaca info dari release
+$updateChecker->getVcsApi()->enableReleaseAssets();
+
+// // Kalau repo private, aktifkan autentikasi:
+// $updateChecker->setAuthentication('YOUR_GITHUB_TOKEN');
 
 class Custom_Product_Tabs_Importer {
     private static $instance = null;
