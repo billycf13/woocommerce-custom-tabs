@@ -87,6 +87,7 @@ class Custom_Product_Tabs_Importer {
 
         // Enqueue scripts dan styles
         add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_scripts'));
+        add_action('wp_enqueue_scripts', array($this, 'enqueue_frontend_scripts'));
     }
 
     /**
@@ -132,7 +133,7 @@ class Custom_Product_Tabs_Importer {
                     case 'content':
                         return isset($tab['content']) ? $tab['content'] : '';
                     case 'priority':
-                        return isset($tab['priority']) ? (string)$tab['priority'] : '50';
+                        return (string)($tab_index + 1);
                 }
             }
         }
@@ -172,8 +173,8 @@ class Custom_Product_Tabs_Importer {
             wp_enqueue_script(
                 'custom-tabs-admin',
                 plugins_url('assets/js/admin-tabs.js', __FILE__),
-                array('jquery', 'editor', 'quicktags', 'wplink', 'media-upload'),
-                '1.0.0',
+                array('jquery', 'jquery-ui-sortable', 'wp-editor', 'wp-util', 'quicktags', 'wplink', 'media-upload'),
+                '1.0.2',
                 true
             );
             
@@ -190,14 +191,27 @@ class Custom_Product_Tabs_Importer {
                 'labels' => array(
                     'newTab' => __('Tab Baru', 'custom-product-tabs-importer'),
                     'delete' => __('Hapus', 'custom-product-tabs-importer'),
-                    'tabTitle' => __('Judul Tab', 'custom-product-tabs-importer'),
-                    'tabContent' => __('Konten Tab', 'custom-product-tabs-importer'),
-                    'priority' => __('Prioritas', 'custom-product-tabs-importer'),
+                    'tabTitle' => __('Nama / Judul Tab', 'custom-product-tabs-importer'),
+                    'tabContent' => __('Konten Lengkap Tab', 'custom-product-tabs-importer'),
                     'visual' => __('Visual', 'custom-product-tabs-importer'),
                     'code' => __('Code', 'custom-product-tabs-importer')
                 ),
                 'nonce' => wp_create_nonce('custom_tabs_nonce')
             ));
+        }
+    }
+
+    /**
+     * Menambahkan script dan style untuk frontend
+     */
+    public function enqueue_frontend_scripts() {
+        if (is_product()) {
+            wp_enqueue_style(
+                'custom-tabs-frontend',
+                plugins_url('assets/css/frontend-style.css', __FILE__),
+                array(),
+                '1.0.0'
+            );
         }
     }
     
@@ -214,12 +228,12 @@ class Custom_Product_Tabs_Importer {
         $custom_tabs = get_post_meta($product_id, '_custom_product_tabs', true);
     
         if (!empty($custom_tabs) && is_array($custom_tabs)) {
+            $priority = 11; // Mulai dari 11 agar muncul setelah "Description" (10)
             foreach ($custom_tabs as $tab_id => $tab) {
-                // Hanya tampilkan tab jika memiliki title DAN content tidak kosong
                 if (!empty($tab['title']) && !empty(trim($tab['content']))) {
                     $tabs[$tab_id] = array(
                         'title'    => $tab['title'],
-                        'priority' => isset($tab['priority']) ? $tab['priority'] : 50,
+                        'priority' => $priority++,
                         'callback' => array($this, 'custom_tab_content'),
                         'content'  => $tab['content']
                     );
@@ -236,7 +250,16 @@ class Custom_Product_Tabs_Importer {
      * @param array $tab Data tab
      */
     public function custom_tab_content($key, $tab) {
-        echo apply_filters('the_content', $tab['content']);
+        echo '<div class="custom-tab-container">';
+        if (!empty($tab['title'])) {
+            echo '<h4 class="custom-tab-label">' . esc_html($tab['title']) . '</h4>';
+        }
+        echo '<div class="custom-tab-content-text">';
+        // Gunakan do_shortcode dan wpautop alih-alih the_content untuk menghindari duplikasi dari plugin lain
+        $content = isset($tab['content']) ? $tab['content'] : '';
+        echo do_shortcode(wpautop($content));
+        echo '</div>';
+        echo '</div>';
     }
 
     /**
@@ -265,16 +288,26 @@ class Custom_Product_Tabs_Importer {
         }
         ?>
         <div id="custom_product_tabs_data" class="panel woocommerce_options_panel">
+            <div class="custom-tabs-header">
+                <h2><?php _e('Kelola Tab Kustom', 'custom-product-tabs-importer'); ?></h2>
+                <p class="description"><?php _e('Tambahkan informasi tambahan produk Anda melalui tab kustom di bawah ini.', 'custom-product-tabs-importer'); ?></p>
+            </div>
+
             <div class="custom_tabs_container">
                 <?php
-                foreach ($custom_tabs as $tab_id => $tab) {
-                    $this->render_tab_fields($tab_id, $tab);
+                if (!empty($custom_tabs)) {
+                    foreach ($custom_tabs as $tab_id => $tab) {
+                        $this->render_tab_fields($tab_id, $tab);
+                    }
                 }
                 ?>
             </div>
-            <p class="add_custom_tab">
-                <button type="button" class="button add_custom_tab_button"><?php _e('Tambah Tab', 'custom-product-tabs-importer'); ?></button>
-            </p>
+
+            <div class="custom-tabs-footer">
+                <button type="button" class="button button-primary add_custom_tab_button">
+                    <span class="dashicons dashicons-plus-alt"></span> <?php _e('Tambah Tab Baru', 'custom-product-tabs-importer'); ?>
+                </button>
+            </div>
         </div>
         <?php
     }
@@ -288,41 +321,65 @@ class Custom_Product_Tabs_Importer {
     private function render_tab_fields($tab_id, $tab_data = array()) {
         $title = isset($tab_data['title']) ? $tab_data['title'] : '';
         $content = isset($tab_data['content']) ? $tab_data['content'] : '';
-        $priority = isset($tab_data['priority']) ? $tab_data['priority'] : 50;
         ?>
-        <div class="custom_tab_fields" data-tab="<?php echo esc_attr($tab_id); ?>">
-            <h3>
-                <span class="tab-title"><?php echo $title ? esc_html($title) : __('Tab Baru', 'custom-product-tabs-importer'); ?></span>
-                <button type="button" class="remove_tab button"><?php _e('Hapus', 'custom-product-tabs-importer'); ?></button>
-            </h3>
-            <div class="tab-content">
-                <p class="form-field">
-                    <label><?php _e('Judul Tab', 'custom-product-tabs-importer'); ?></label>
-                    <input type="text" name="custom_product_tabs[<?php echo esc_attr($tab_id); ?>][title]" value="<?php echo esc_attr($title); ?>" />
-                </p>
-                <p class="form-field">
-                    <label><?php _e('Konten Tab', 'custom-product-tabs-importer'); ?></label>
-                    <?php 
-                    $editor_id = 'custom_tab_' . $tab_id . '_content';
-                    wp_editor(
-                        $content,
-                        $editor_id,
-                        array(
-                            'textarea_name' => "custom_product_tabs[{$tab_id}][content]",
-                            'editor_class' => 'custom_tab_content',
-                            'media_buttons' => true,
-                            'tinymce' => true,
-                            'quicktags' => true,
-                            'editor_height' => 200,
-                            'teeny' => false
-                        )
-                    );
-                    ?>
-                </p>
-                <p class="form-field">
-                    <label><?php _e('Prioritas', 'custom-product-tabs-importer'); ?></label>
-                    <input type="number" name="custom_product_tabs[<?php echo esc_attr($tab_id); ?>][priority]" value="<?php echo esc_attr($priority); ?>" />
-                </p>
+        <div class="custom_tab_fields cardx" data-tab="<?php echo esc_attr($tab_id); ?>">
+            <div class="tab-header">
+                <div class="tab-reorder-actions">
+                    <button type="button" class="move-tab-up button-link" title="<?php esc_attr_e('Pindahkan ke atas', 'custom-product-tabs-importer'); ?>">
+                        <span class="dashicons dashicons-arrow-up-alt2"></span>
+                    </button>
+                    <button type="button" class="move-tab-down button-link" title="<?php esc_attr_e('Pindahkan ke bawah', 'custom-product-tabs-importer'); ?>">
+                        <span class="dashicons dashicons-arrow-down-alt2"></span>
+                    </button>
+                </div>
+                <div class="tab-drag-handle">
+                    <span class="dashicons dashicons-menu"></span>
+                </div>
+                <div class="tab-title-wrapper">
+                    <span class="tab-title"><?php echo $title ? esc_html($title) : __('Tab Baru', 'custom-product-tabs-importer'); ?></span>
+                </div>
+                <div class="tab-actions">
+                    <button type="button" class="toggle-tab-content button-link" title="<?php esc_attr_e('Buka/Tutup', 'custom-product-tabs-importer'); ?>">
+                        <span class="dashicons dashicons-arrow-down-alt2"></span>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="tab-content-wrapper">
+                <div class="form-grid">
+                    <div class="form-field-group full-width">
+                        <label><?php _e('Nama / Judul Tab', 'custom-product-tabs-importer'); ?></label>
+                        <input type="text" name="custom_product_tabs[<?php echo esc_attr($tab_id); ?>][title]" value="<?php echo esc_attr($title); ?>" placeholder="<?php esc_attr_e('Contoh: Spesifikasi Lengkap', 'custom-product-tabs-importer'); ?>" />
+                    </div>
+                </div>
+
+                <div class="form-field-group full-width">
+                    <label><?php _e('Konten Lengkap Tab', 'custom-product-tabs-importer'); ?></label>
+                    <div class="editor-container">
+                        <?php 
+                        $editor_id = 'custom_tab_' . $tab_id . '_content';
+                        wp_editor(
+                            $content,
+                            $editor_id,
+                            array(
+                                'textarea_name' => "custom_product_tabs[{$tab_id}][content]",
+                                'editor_class' => 'custom_tab_content',
+                                'media_buttons' => true,
+                                'tinymce' => true,
+                                'quicktags' => true,
+                                'editor_height' => 200,
+                                'teeny' => false
+                            )
+                        );
+                        ?>
+                    </div>
+                </div>
+
+                <div class="tab-footer">
+                    <button type="button" class="remove_tab button button-link delete">
+                        <span class="dashicons dashicons-trash"></span> <?php _e('Hapus Tab', 'custom-product-tabs-importer'); ?>
+                    </button>
+                </div>
             </div>
         </div>
         <?php
@@ -341,8 +398,7 @@ class Custom_Product_Tabs_Importer {
                 if (!empty($tab['title'])) {
                     $sanitized_tabs[$tab_id] = array(
                         'title'    => sanitize_text_field($tab['title']),
-                        'content'  => wp_kses_post($tab['content']),
-                        'priority' => absint($tab['priority'])
+                        'content'  => wp_kses_post($tab['content'])
                     );
                 }
             }
@@ -441,31 +497,34 @@ class Custom_Product_Tabs_Importer {
         $custom_tabs = array();
         $i = 1;
         
-        // Debug: Tambahkan log untuk melihat data yang diimpor
-        error_log('Data impor: ' . print_r($data, true));
-        
         // Proses semua tab yang ada di data
         while (isset($data["custom_tab_{$i}_title"])) {
             if (!empty($data["custom_tab_{$i}_title"])) {
-                // Gunakan format tab_id yang konsisten dengan yang digunakan di admin panel
                 $tab_id = 'tab_' . uniqid();
                 $custom_tabs[$tab_id] = array(
                     'title' => $data["custom_tab_{$i}_title"],
                     'content' => isset($data["custom_tab_{$i}_content"]) ? $data["custom_tab_{$i}_content"] : '',
-                    'priority' => isset($data["custom_tab_{$i}_priority"]) ? absint($data["custom_tab_{$i}_priority"]) : 50
+                    'priority' => isset($data["custom_tab_{$i}_priority"]) ? absint($data["custom_tab_{$i}_priority"]) : 10 // Default priority
                 );
-                
-                // Debug: Tambahkan log untuk setiap tab yang diproses
-                error_log("Memproses tab {$i}: " . $data["custom_tab_{$i}_title"]);
             }
             $i++; // Increment variabel $i untuk pindah ke tab berikutnya
         }
 
-        // Debug: Tambahkan log untuk melihat hasil akhir
-        error_log('Hasil custom tabs: ' . print_r($custom_tabs, true));
-
         if (!empty($custom_tabs)) {
-            $product->update_meta_data('_custom_product_tabs', $custom_tabs);
+            // Urutkan tab berdasarkan priority sebelum disimpan agar posisinya benar di array
+            uasort($custom_tabs, function($a, $b) {
+                return $a['priority'] - $b['priority'];
+            });
+            
+            // Simpan ke meta (tanpa field priority agar database tetap bersih)
+            $final_tabs = array();
+            foreach ($custom_tabs as $id => $tab) {
+                $final_tabs[$id] = array(
+                    'title' => $tab['title'],
+                    'content' => $tab['content']
+                );
+            }
+            $product->update_meta_data('_custom_product_tabs', $final_tabs);
         }
 
         return $product;
