@@ -167,13 +167,13 @@ jQuery(document).ready(function ($) {
                 
                 <div class="tab-content-wrapper">
                     <div class="form-grid">
-                        <div class="form-field-group">
+                        <div class="form-field-group full-width">
                             <label>${customTabsData.labels.tabTitle}</label>
                             <input type="text" name="custom_product_tabs[${tabId}][title]" value="" placeholder="Contoh: Spesifikasi Lengkap" />
                         </div>
                     </div>
 
-                    <div class="form-field-group">
+                    <div class="form-field-group full-width">
                         <label>${customTabsData.labels.tabContent}</label>
                         <div class="editor-container">
                             <textarea id="custom_tab_${tabId}_content" name="custom_product_tabs[${tabId}][content]" class="custom_tab_content"></textarea>

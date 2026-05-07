@@ -12,7 +12,7 @@
  * <li>🔌 Kompatibel dengan WooCommerce HPOS</li>
  * </ul>
  * <em>Plugin ini dibuat untuk memudahkan pengelolaan konten produk WooCommerce Anda.</em>
- * Version: 1.0.1
+ * Version: 1.1.0
  * Author: Billycf
  * Author URI: https://github.com/billycf13
  * Text Domain: custom-product-tabs-importer
@@ -76,7 +76,8 @@ class Custom_Product_Tabs_Importer {
         add_filter('woocommerce_product_export_product_default_columns', array($this, 'add_export_column'));
         
         // Hook untuk setiap kolom tab kustom
-        for ($i = 1; $i <= 10; $i++) { // Support hingga 10 tab
+        $max_export_tabs = max(10, $this->get_max_tabs_count());
+        for ($i = 1; $i <= $max_export_tabs; $i++) {
             add_filter("woocommerce_product_export_product_column_custom_tab_{$i}_title", array($this, 'get_column_value'), 10, 2);
             add_filter("woocommerce_product_export_product_column_custom_tab_{$i}_content", array($this, 'get_column_value'), 10, 2);
             add_filter("woocommerce_product_export_product_column_custom_tab_{$i}_priority", array($this, 'get_column_value'), 10, 2);
@@ -97,12 +98,8 @@ class Custom_Product_Tabs_Importer {
      * @return string Nilai kolom yang akan diekspor
      */
     public function get_column_value($value, $product) {
-        // Debug: Log nilai parameter yang diterima
-        error_log('Export column value request - Column: ' . print_r($value, true));
-        
         // Ambil data tab kustom dari produk
         $custom_tabs = $product->get_meta('_custom_product_tabs');
-        error_log('Custom tabs data: ' . print_r($custom_tabs, true));
         
         // Jika tidak ada tab kustom, return string kosong
         if (empty($custom_tabs) || !is_array($custom_tabs)) {
@@ -119,8 +116,6 @@ class Custom_Product_Tabs_Importer {
             
             // Index array dimulai dari 0, sedangkan nomor tab dimulai dari 1
             $tab_index = $tab_number - 1;
-            
-            error_log("Mencoba mengakses tab {$tab_number} (index {$tab_index}) untuk field {$field_type}");
             
             // Cek apakah tab dengan index tersebut ada
             if (isset($tabs_array[$tab_index])) {
@@ -174,7 +169,7 @@ class Custom_Product_Tabs_Importer {
                 'custom-tabs-admin',
                 plugins_url('assets/js/admin-tabs.js', __FILE__),
                 array('jquery', 'jquery-ui-sortable', 'wp-editor', 'wp-util', 'quicktags', 'wplink', 'media-upload'),
-                '1.0.2',
+                '1.1.0',
                 true
             );
             
@@ -183,7 +178,7 @@ class Custom_Product_Tabs_Importer {
                 'custom-tabs-admin',
                 plugins_url('assets/css/admin-style.css', __FILE__),
                 array(),
-                '1.0.0'
+                '1.1.0'
             );
             
             // Tambahkan data localization untuk JavaScript
@@ -210,7 +205,7 @@ class Custom_Product_Tabs_Importer {
                 'custom-tabs-frontend',
                 plugins_url('assets/css/frontend-style.css', __FILE__),
                 array(),
-                '1.0.0'
+                '1.1.0'
             );
         }
     }
@@ -251,9 +246,6 @@ class Custom_Product_Tabs_Importer {
      */
     public function custom_tab_content($key, $tab) {
         echo '<div class="custom-tab-container">';
-        if (!empty($tab['title'])) {
-            echo '<h4 class="custom-tab-label">' . esc_html($tab['title']) . '</h4>';
-        }
         echo '<div class="custom-tab-content-text">';
         // Gunakan do_shortcode dan wpautop alih-alih the_content untuk menghindari duplikasi dari plugin lain
         $content = isset($tab['content']) ? $tab['content'] : '';
@@ -288,6 +280,7 @@ class Custom_Product_Tabs_Importer {
         }
         ?>
         <div id="custom_product_tabs_data" class="panel woocommerce_options_panel">
+            <?php wp_nonce_field('custom_tabs_nonce', 'custom_tabs_nonce'); ?>
             <div class="custom-tabs-header">
                 <h2><?php _e('Kelola Tab Kustom', 'custom-product-tabs-importer'); ?></h2>
                 <p class="description"><?php _e('Tambahkan informasi tambahan produk Anda melalui tab kustom di bawah ini.', 'custom-product-tabs-importer'); ?></p>
@@ -390,6 +383,18 @@ class Custom_Product_Tabs_Importer {
      * @param int $post_id ID produk
      */
     public function save_custom_product_tab_data($post_id) {
+        if (!isset($_POST['custom_tabs_nonce']) || !wp_verify_nonce($_POST['custom_tabs_nonce'], 'custom_tabs_nonce')) {
+            return;
+        }
+
+        if (!current_user_can('edit_product', $post_id)) {
+            return;
+        }
+
+        if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
+            return;
+        }
+
         $custom_tabs = isset($_POST['custom_product_tabs']) ? $_POST['custom_product_tabs'] : array();
         $sanitized_tabs = array();
 
@@ -405,6 +410,9 @@ class Custom_Product_Tabs_Importer {
         }
 
         update_post_meta($post_id, '_custom_product_tabs', $sanitized_tabs);
+
+        // Clear cached max tabs count
+        delete_transient('custom_tabs_max_count');
     }
 
     /**
@@ -437,12 +445,22 @@ class Custom_Product_Tabs_Importer {
             return 1;
         }
 
-        $file = $_POST['file'];
-        if (!file_exists($file)) {
+        $file = sanitize_text_field(wp_unslash($_POST['file']));
+
+        // Validasi file berada di dalam direktori uploads
+        $upload_dir = wp_upload_dir();
+        $upload_base = realpath($upload_dir['basedir']);
+        $real_file = realpath($file);
+
+        if (!$real_file || !$upload_base || strpos($real_file, $upload_base) !== 0) {
             return 1;
         }
 
-        $handle = fopen($file, 'r');
+        if (!file_exists($real_file)) {
+            return 1;
+        }
+
+        $handle = fopen($real_file, 'r');
         if ($handle === false) {
             return 1;
         }
@@ -535,23 +553,29 @@ class Custom_Product_Tabs_Importer {
      * @return int Jumlah tab maksimum
      */
     private function get_max_tabs_count() {
+        $cached = get_transient('custom_tabs_max_count');
+        if ($cached !== false) {
+            return (int) $cached;
+        }
+
         global $wpdb;
-        
+
         // Ambil semua custom tab dari database
         $meta_values = $wpdb->get_col($wpdb->prepare(
             "SELECT meta_value FROM {$wpdb->postmeta} WHERE meta_key = %s",
             '_custom_product_tabs'
         ));
-        
+
         $max_tabs = 1; // Minimal 1 tab
-        
+
         foreach ($meta_values as $meta_value) {
             $tabs = maybe_unserialize($meta_value);
             if (is_array($tabs)) {
                 $max_tabs = max($max_tabs, count($tabs));
             }
         }
-        
+
+        set_transient('custom_tabs_max_count', $max_tabs, HOUR_IN_SECONDS);
         return $max_tabs;
     }
 }
@@ -561,4 +585,3 @@ add_action('plugins_loaded', function() {
     Custom_Product_Tabs_Importer::get_instance();
 });
 
-// ... existing code ...
