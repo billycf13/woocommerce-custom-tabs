@@ -142,7 +142,7 @@ jQuery(document).ready(function ($) {
         var tabContentLabel = (typeof customTabsData !== 'undefined') ? customTabsData.labels.tabContent : 'Konten Lengkap Tab';
 
         var template = `
-            <div class="custom_tab_fields card active" data-tab="${tabId}">
+            <div class="custom_tab_fields cardx active" data-tab="${tabId}">
                 <div class="tab-header">
                     <div class="tab-reorder-actions">
                         <button type="button" class="move-tab-up button-link" title="Pindahkan ke atas">
