@@ -1,4 +1,161 @@
 jQuery(document).ready(function ($) {
+    var autosaveTimer = null;
+    var autosaveInProgress = false;
+    var autosaveQueued = false;
+    var pendingStatusElements = [];
+
+    function setAutosaveStatus($status, message, state) {
+        if (!$status || !$status.length) {
+            return;
+        }
+
+        var oldTimer = $status.data('clearTimer');
+        if (oldTimer) {
+            clearTimeout(oldTimer);
+        }
+
+        $status.text(message);
+        $status.removeClass('is-saving is-saved is-error');
+        if (state) $status.addClass('is-' + state);
+
+        if ('saved' === state) {
+            $status.data('clearTimer', setTimeout(function () {
+                $status.text('').removeClass('is-saving is-saved is-error');
+            }, 2500));
+        }
+    }
+
+    function syncCustomTabEditors() {
+        if (typeof tinyMCE !== 'undefined' && typeof tinyMCE.triggerSave === 'function') {
+            tinyMCE.triggerSave();
+        }
+    }
+
+    function collectCustomTabs() {
+        var tabs = [];
+
+        $('.custom_tabs_container .custom_tab_fields').each(function () {
+            var $tab = $(this);
+            var tabId = String($tab.data('tab'));
+            var editorId = 'custom_tab_' + tabId + '_content';
+            var editor = typeof tinyMCE !== 'undefined' ? tinyMCE.get(editorId) : null;
+            var content = editor && editor.isHidden() === false
+                ? editor.getContent()
+                : $tab.find('.custom_tab_content').val();
+
+            tabs.push({
+                id: tabId,
+                title: $tab.find('input[name$="[title]"]').val() || '',
+                content: content || ''
+            });
+        });
+
+        return tabs;
+    }
+
+    function addPendingStatus($status) {
+        if (!$status || !$status.length) {
+            $status = $('.custom-tabs-autosave-status');
+        }
+
+        if ($status.length && $.inArray($status[0], pendingStatusElements) === -1) {
+            pendingStatusElements.push($status[0]);
+        }
+        setAutosaveStatus($status, customTabsData.labels.saving, 'saving');
+    }
+
+    function runCustomTabsAutosave() {
+        if (autosaveInProgress) {
+            autosaveQueued = true;
+            return;
+        }
+
+        autosaveInProgress = true;
+        autosaveQueued = false;
+        var statuses = pendingStatusElements.slice();
+        pendingStatusElements = [];
+        syncCustomTabEditors();
+
+        $.ajax({
+            url: customTabsData.ajaxUrl,
+            method: 'POST',
+            dataType: 'json',
+            data: {
+                action: 'custom_tabs_autosave',
+                nonce: customTabsData.autosaveNonce,
+                post_id: customTabsData.postId,
+                tabs: JSON.stringify(collectCustomTabs())
+            }
+        }).done(function (response) {
+            var success = response && response.success;
+            $.each(statuses, function (index, element) {
+                var $status = $(element);
+                var changedAgain = $.inArray(element, pendingStatusElements) !== -1;
+                if (!changedAgain) {
+                    setAutosaveStatus(
+                        $status,
+                        success ? customTabsData.labels.saved : customTabsData.labels.saveFailed,
+                        success ? 'saved' : 'error'
+                    );
+                }
+            });
+        }).fail(function () {
+            $.each(statuses, function (index, element) {
+                if ($.inArray(element, pendingStatusElements) === -1) {
+                    setAutosaveStatus($(element), customTabsData.labels.saveFailed, 'error');
+                }
+            });
+        }).always(function () {
+            autosaveInProgress = false;
+            if (autosaveQueued || pendingStatusElements.length) {
+                runCustomTabsAutosave();
+            }
+        });
+    }
+
+    function queueCustomTabsAutosave($status) {
+        addPendingStatus($status);
+        clearTimeout(autosaveTimer);
+        autosaveTimer = setTimeout(runCustomTabsAutosave, 350);
+    }
+
+    function bindEditorAutosave(editor) {
+        if (!editor || editor._customTabsAutosaveBound) {
+            return;
+        }
+
+        editor._customTabsAutosaveBound = true;
+        editor.on('blur', function () {
+            var $textarea = $('#' + editor.id);
+            if ($textarea.length && $textarea.hasClass('custom_tab_content')) {
+                queueCustomTabsAutosave($textarea.closest('.form-field-group').find('.custom-tab-field-status'));
+            }
+        });
+    }
+
+    if (typeof tinymce !== 'undefined') {
+        tinymce.on('AddEditor', function (event) {
+            bindEditorAutosave(event.editor);
+        });
+    }
+
+    function bindExistingEditors() {
+        if (typeof tinyMCE === 'undefined') {
+            return;
+        }
+        $('.custom_tab_content').each(function () {
+            bindEditorAutosave(tinyMCE.get(this.id));
+        });
+    }
+    bindExistingEditors();
+    setTimeout(bindExistingEditors, 300);
+    setTimeout(bindExistingEditors, 1000);
+
+    $(document).on('blur', '#custom_product_tabs_data input[name$="[title]"], #custom_product_tabs_data textarea.custom_tab_content', function () {
+        var $field = $(this);
+        queueCustomTabsAutosave($field.closest('.form-field-group').find('.custom-tab-field-status'));
+    });
+
     // Fungsi untuk menginisialisasi editor
     function initializeEditor(tabId, forceInit = false) {
         var editorId = 'custom_tab_' + tabId + '_content';
@@ -42,6 +199,12 @@ jQuery(document).ready(function ($) {
                             ed.save();
                             $(ed.getElement()).trigger('change');
                         });
+                        ed.on('blur', function () {
+                            var $textarea = $(ed.getElement());
+                            if ($textarea.hasClass('custom_tab_content')) {
+                                queueCustomTabsAutosave($textarea.closest('.form-field-group').find('.custom-tab-field-status'));
+                            }
+                        });
                     }
                 },
                 quicktags: true,
@@ -72,6 +235,10 @@ jQuery(document).ready(function ($) {
                     // Hapus instance TinyMCE sementara saat dipindahkan
                     ui.item.find('.custom_tab_content').each(function () {
                         var id = $(this).attr('id');
+                        var editor = typeof tinyMCE !== 'undefined' ? tinyMCE.get(id) : null;
+                        if (editor) {
+                            editor.save();
+                        }
                         if (typeof tinyMCE !== 'undefined' && tinyMCE.get(id)) {
                             tinyMCE.execCommand('mceRemoveEditor', false, id);
                         }
@@ -84,6 +251,7 @@ jQuery(document).ready(function ($) {
                         var tabId = ui.item.closest('.custom_tab_fields').data('tab');
                         initializeEditor(tabId, true);
                     });
+                    queueCustomTabsAutosave();
                 }
             });
         }
@@ -96,7 +264,9 @@ jQuery(document).ready(function ($) {
         var editorId = 'custom_tab_' + $tab.data('tab') + '_content';
 
         // Hapus editor sebelum memindahkan
-        if (typeof tinyMCE !== 'undefined' && tinyMCE.get(editorId)) {
+        var editor = typeof tinyMCE !== 'undefined' ? tinyMCE.get(editorId) : null;
+        if (editor) {
+            editor.save();
             tinyMCE.execCommand('mceRemoveEditor', false, editorId);
         }
 
@@ -114,6 +284,7 @@ jQuery(document).ready(function ($) {
 
         // Re-inisialisasi editor
         initializeEditor($tab.data('tab'), true);
+        queueCustomTabsAutosave();
     }
 
     // Handler tombol Move Up
@@ -168,13 +339,13 @@ jQuery(document).ready(function ($) {
                 <div class="tab-content-wrapper">
                     <div class="form-grid">
                         <div class="form-field-group full-width">
-                            <label>${customTabsData.labels.tabTitle}</label>
+                            <label>${tabTitleLabel} <span class="custom-tab-field-status" aria-live="polite"></span></label>
                             <input type="text" name="custom_product_tabs[${tabId}][title]" value="" placeholder="Contoh: Spesifikasi Lengkap" />
                         </div>
                     </div>
 
                     <div class="form-field-group full-width">
-                        <label>${customTabsData.labels.tabContent}</label>
+                        <label>${tabContentLabel} <span class="custom-tab-field-status" aria-live="polite"></span></label>
                         <div class="editor-container">
                             <textarea id="custom_tab_${tabId}_content" name="custom_product_tabs[${tabId}][content]" class="custom_tab_content"></textarea>
                         </div>
@@ -193,6 +364,7 @@ jQuery(document).ready(function ($) {
         $('.custom_tabs_container').append($newTab);
 
         initializeEditor(tabId, true);
+        queueCustomTabsAutosave($newTab.find('.custom-tab-field-status').first());
 
         $('html, body').animate({
             scrollTop: $newTab.offset().top - 100
@@ -217,6 +389,7 @@ jQuery(document).ready(function ($) {
                 wp.editor.remove(editorId);
             }
             $tabContainer.remove();
+            queueCustomTabsAutosave();
         });
     });
 

@@ -68,6 +68,7 @@ class Custom_Product_Tabs_Importer
         add_filter('woocommerce_product_data_tabs', array($this, 'add_custom_product_tab'), 10, 1);
         add_action('woocommerce_product_data_panels', array($this, 'add_custom_product_tab_content'));
         add_action('woocommerce_process_product_meta', array($this, 'save_custom_product_tab_data'));
+        add_action('wp_ajax_custom_tabs_autosave', array($this, 'ajax_autosave_custom_product_tabs'));
         add_action('woocommerce_rest_insert_product_object', array($this, 'save_from_rest'), 10, 3);
 
         // Hook untuk import/export
@@ -205,7 +206,7 @@ class Custom_Product_Tabs_Importer
                 'custom-tabs-admin',
                 plugins_url('assets/js/admin-tabs.js', __FILE__),
                 array('jquery', 'jquery-ui-sortable', 'wp-editor', 'wp-util', 'quicktags', 'wplink', 'media-upload'),
-                '1.1.0',
+                '1.1.1',
                 true
             );
 
@@ -214,7 +215,7 @@ class Custom_Product_Tabs_Importer
                 'custom-tabs-admin',
                 plugins_url('assets/css/admin-style.css', __FILE__),
                 array(),
-                '1.1.0'
+                '1.1.1'
             );
 
             // Tambahkan data localization untuk JavaScript
@@ -225,9 +226,15 @@ class Custom_Product_Tabs_Importer
                     'tabTitle' => __('Nama / Judul Tab', 'custom-product-tabs-importer'),
                     'tabContent' => __('Konten Lengkap Tab', 'custom-product-tabs-importer'),
                     'visual' => __('Visual', 'custom-product-tabs-importer'),
-                    'code' => __('Code', 'custom-product-tabs-importer')
+                    'code' => __('Code', 'custom-product-tabs-importer'),
+                    'saving' => __('Menyimpan...', 'custom-product-tabs-importer'),
+                    'saved' => __('Perubahan disimpan', 'custom-product-tabs-importer'),
+                    'saveFailed' => __('Gagal menyimpan perubahan', 'custom-product-tabs-importer')
                 ),
-                'nonce' => wp_create_nonce('custom_tabs_nonce')
+                'nonce' => wp_create_nonce('custom_tabs_nonce'),
+                'autosaveNonce' => wp_create_nonce('custom_tabs_autosave'),
+                'ajaxUrl' => admin_url('admin-ajax.php'),
+                'postId' => get_the_ID()
             ));
         }
     }
@@ -325,6 +332,7 @@ class Custom_Product_Tabs_Importer
             <?php wp_nonce_field('custom_tabs_nonce', 'custom_tabs_nonce'); ?>
             <div class="custom-tabs-header">
                 <h2><?php _e('Kelola Tab Kustom', 'custom-product-tabs-importer'); ?></h2>
+                <span class="custom-tabs-autosave-status" aria-live="polite"></span>
                 <p class="description">
                     <?php _e('Tambahkan informasi tambahan produk Anda melalui tab kustom di bawah ini.', 'custom-product-tabs-importer'); ?>
                 </p>
@@ -391,7 +399,10 @@ class Custom_Product_Tabs_Importer
             <div class="tab-content-wrapper">
                 <div class="form-grid">
                     <div class="form-field-group full-width">
-                        <label><?php _e('Nama / Judul Tab', 'custom-product-tabs-importer'); ?></label>
+                        <label>
+                            <?php _e('Nama / Judul Tab', 'custom-product-tabs-importer'); ?>
+                            <span class="custom-tab-field-status" aria-live="polite"></span>
+                        </label>
                         <input type="text" name="custom_product_tabs[<?php echo esc_attr($tab_id); ?>][title]"
                             value="<?php echo esc_attr($title); ?>"
                             placeholder="<?php esc_attr_e('Contoh: Spesifikasi Lengkap', 'custom-product-tabs-importer'); ?>" />
@@ -399,7 +410,10 @@ class Custom_Product_Tabs_Importer
                 </div>
 
                 <div class="form-field-group full-width">
-                    <label><?php _e('Konten Lengkap Tab', 'custom-product-tabs-importer'); ?></label>
+                    <label>
+                        <?php _e('Konten Lengkap Tab', 'custom-product-tabs-importer'); ?>
+                        <span class="custom-tab-field-status" aria-live="polite"></span>
+                    </label>
                     <div class="editor-container">
                         <?php
                         $editor_id = 'custom_tab_' . $tab_id . '_content';
@@ -432,6 +446,52 @@ class Custom_Product_Tabs_Importer
     }
 
     /**
+     * Simpan semua tab dari editor produk melalui autosave AJAX.
+     */
+    public function ajax_autosave_custom_product_tabs()
+    {
+        if (!check_ajax_referer('custom_tabs_autosave', 'nonce', false)) {
+            wp_send_json_error(array('message' => __('Sesi keamanan tidak valid. Muat ulang halaman dan coba lagi.', 'custom-product-tabs-importer')), 403);
+        }
+
+        $post_id = isset($_POST['post_id']) ? absint($_POST['post_id']) : 0;
+        if (!$post_id || 'product' !== get_post_type($post_id) || !current_user_can('edit_post', $post_id)) {
+            wp_send_json_error(array('message' => __('Anda tidak memiliki izin untuk mengubah produk ini.', 'custom-product-tabs-importer')), 403);
+        }
+
+        if (!isset($_POST['tabs']) || !is_string($_POST['tabs'])) {
+            wp_send_json_error(array('message' => __('Data tab tidak valid.', 'custom-product-tabs-importer')), 400);
+        }
+
+        $tabs = json_decode(wp_unslash($_POST['tabs']), true);
+        if (!is_array($tabs)) {
+            wp_send_json_error(array('message' => __('Data tab tidak valid.', 'custom-product-tabs-importer')), 400);
+        }
+
+        $sanitized_tabs = array();
+        foreach ($tabs as $tab) {
+            if (!is_array($tab) || !isset($tab['id']) || !is_scalar($tab['id'])) {
+                continue;
+            }
+
+            $tab_id = sanitize_key((string) $tab['id']);
+            if ('' === $tab_id) {
+                continue;
+            }
+
+            $sanitized_tabs[$tab_id] = array(
+                'title' => sanitize_text_field(isset($tab['title']) && is_scalar($tab['title']) ? (string) $tab['title'] : ''),
+                'content' => wp_kses_post(isset($tab['content']) && is_scalar($tab['content']) ? (string) $tab['content'] : '')
+            );
+        }
+
+        update_post_meta($post_id, '_custom_product_tabs', $sanitized_tabs);
+        delete_transient('custom_tabs_max_count');
+
+        wp_send_json_success();
+    }
+
+    /**
      * Menyimpan data tab kustom
      * @param int $post_id ID produk
      */
@@ -445,19 +505,26 @@ class Custom_Product_Tabs_Importer
             return;
         }
 
-        if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
+        // Jangan mengosongkan data tab jika field tab tidak dikirim.
+        if (!isset($_POST['custom_product_tabs']) || !is_array($_POST['custom_product_tabs'])) {
             return;
         }
 
-        $custom_tabs = isset($_POST['custom_product_tabs']) ? $_POST['custom_product_tabs'] : array();
+        $custom_tabs = wp_unslash($_POST['custom_product_tabs']);
         $sanitized_tabs = array();
 
         if (!empty($custom_tabs)) {
             foreach ($custom_tabs as $tab_id => $tab) {
-                if (!empty($tab['title'])) {
-                    $sanitized_tabs[$tab_id] = array(
-                        'title' => sanitize_text_field($tab['title']),
-                        'content' => wp_kses_post($tab['content'])
+                if (!is_array($tab)) {
+                    continue;
+                }
+
+                $title = isset($tab['title']) && is_scalar($tab['title']) ? sanitize_text_field((string) $tab['title']) : '';
+                $content = isset($tab['content']) && is_scalar($tab['content']) ? wp_kses_post((string) $tab['content']) : '';
+                if ('' !== $title || '' !== $content) {
+                    $sanitized_tabs[sanitize_key($tab_id)] = array(
+                        'title' => $title,
+                        'content' => $content
                     );
                 }
             }
