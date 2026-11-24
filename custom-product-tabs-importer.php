@@ -12,7 +12,7 @@
  * <li>🔌 Kompatibel dengan WooCommerce HPOS</li>
  * </ul>
  * <em>Plugin ini dibuat untuk memudahkan pengelolaan konten produk WooCommerce Anda.</em>
- * Version: 1.2.0
+ * Version: 1.3.0
  * Author: Billycf
  * Author URI: https://github.com/billycf13
  * Text Domain: custom-product-tabs-importer
@@ -206,7 +206,7 @@ class Custom_Product_Tabs_Importer
                 'custom-tabs-admin',
                 plugins_url('assets/js/admin-tabs.js', __FILE__),
                 array('jquery', 'jquery-ui-sortable', 'wp-editor', 'wp-util', 'quicktags', 'wplink', 'media-upload'),
-                '1.1.4',
+                '1.1.7',
                 true
             );
 
@@ -215,7 +215,7 @@ class Custom_Product_Tabs_Importer
                 'custom-tabs-admin',
                 plugins_url('assets/css/admin-style.css', __FILE__),
                 array(),
-                '1.1.4'
+                '1.1.9'
             );
 
             // Tambahkan data localization untuk JavaScript
@@ -227,6 +227,7 @@ class Custom_Product_Tabs_Importer
                     'tabContent' => __('Konten Lengkap Tab', 'custom-product-tabs-importer'),
                     'visual' => __('Visual', 'custom-product-tabs-importer'),
                     'code' => __('Code', 'custom-product-tabs-importer'),
+                    'pending' => __('Perubahan belum disimpan', 'custom-product-tabs-importer'),
                     'saving' => __('Menyimpan...', 'custom-product-tabs-importer'),
                     'saved' => __('Perubahan disimpan', 'custom-product-tabs-importer'),
                     'saveFailed' => __('Gagal menyimpan perubahan', 'custom-product-tabs-importer'),

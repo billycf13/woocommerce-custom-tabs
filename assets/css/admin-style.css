@@ -131,17 +131,17 @@
 
 .tab-reorder-actions {
     display: flex;
-    flex-direction: column;
-    gap: 2px;
+    flex-direction: row;
+    gap: 0;
+    margin-right: -6px;
 }
 
 .tab-reorder-actions .button-link {
     padding: 0;
     height: 14px;
-    width: 20px;
     min-height: unset;
     line-height: 1;
-    color: #8c8f94;
+    color: #1d2327;
     transition: var(--transition);
 }
 
@@ -149,17 +149,30 @@
     color: var(--primary-color);
 }
 
-.custom_tabs_container .custom_tab_fields:first-child .move-tab-up,
-.custom_tabs_container .custom_tab_fields:last-child .move-tab-down {
-    display: none !important;
+.tab-reorder-actions .button-link:disabled {
+    color: #a7aaad;
+    cursor: not-allowed;
+    opacity: 1;
+}
+
+.tab-reorder-actions .button-link:disabled .custom-tab-order-icon {
+    -webkit-text-stroke-width: 0.5px;
+}
+
+.tab-reorder-actions .button-link:not(:disabled) .custom-tab-order-icon {
+    color: #1d2327;
 }
 
 .tab-drag-handle {
-    color: #8c8f94;
+    color: #1d2327;
     cursor: grab;
     display: flex;
     align-items: center;
-    padding-left: 4px;
+    padding-right: 6px;
+}
+
+.tab-drag-handle .dashicons {
+    color: #1d2327;
 }
 
 .tab-drag-handle:active {

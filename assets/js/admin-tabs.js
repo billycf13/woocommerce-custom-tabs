@@ -15,7 +15,7 @@ jQuery(document).ready(function ($) {
         }
 
         $status.text(message);
-        $status.removeClass('is-saving is-saved is-error');
+        $status.removeClass('is-pending is-saving is-saved is-error');
         if (state) $status.addClass('is-' + state);
 
         if ('saved' === state) {
@@ -53,7 +53,7 @@ jQuery(document).ready(function ($) {
         return tabs;
     }
 
-    function addPendingStatus($status) {
+    function addPendingStatus($status, showSaving) {
         if (!$status || !$status.length) {
             $status = $('.custom-tabs-autosave-status');
         }
@@ -61,7 +61,11 @@ jQuery(document).ready(function ($) {
         if ($status.length && $.inArray($status[0], pendingStatusElements) === -1) {
             pendingStatusElements.push($status[0]);
         }
-        setAutosaveStatus($status, customTabsData.labels.saving, 'saving');
+        setAutosaveStatus(
+            $status,
+            showSaving === false ? customTabsData.labels.pending : customTabsData.labels.saving,
+            showSaving === false ? 'pending' : 'saving'
+        );
     }
 
     function runCustomTabsAutosave() {
@@ -75,6 +79,9 @@ jQuery(document).ready(function ($) {
         var statuses = pendingStatusElements.slice();
         pendingStatusElements = [];
         syncCustomTabEditors();
+        $.each(statuses, function (index, element) {
+            setAutosaveStatus($(element), customTabsData.labels.saving, 'saving');
+        });
 
         $.ajax({
             url: customTabsData.ajaxUrl,
@@ -113,10 +120,10 @@ jQuery(document).ready(function ($) {
         });
     }
 
-    function queueCustomTabsAutosave($status) {
-        addPendingStatus($status);
+    function queueCustomTabsAutosave($status, delay, showSaving) {
+        addPendingStatus($status, showSaving);
         clearTimeout(autosaveTimer);
-        autosaveTimer = setTimeout(runCustomTabsAutosave, 350);
+        autosaveTimer = setTimeout(runCustomTabsAutosave, typeof delay === 'number' ? delay : 350);
     }
 
     function bindEditorAutosave(editor) {
@@ -125,6 +132,16 @@ jQuery(document).ready(function ($) {
         }
 
         editor._customTabsAutosaveBound = true;
+        editor.on('input', function () {
+            var $textarea = $('#' + editor.id);
+            if ($textarea.length && $textarea.hasClass('custom_tab_content')) {
+                queueCustomTabsAutosave(
+                    $textarea.closest('.form-field-group').find('.custom-tab-field-status'),
+                    10000,
+                    false
+                );
+            }
+        });
         editor.on('blur', function () {
             var $textarea = $('#' + editor.id);
             if ($textarea.length && $textarea.hasClass('custom_tab_content')) {
@@ -155,6 +172,32 @@ jQuery(document).ready(function ($) {
         var $field = $(this);
         queueCustomTabsAutosave($field.closest('.form-field-group').find('.custom-tab-field-status'));
     });
+
+    $(document).on('input', '#custom_product_tabs_data textarea.custom_tab_content', function () {
+        var $field = $(this);
+        queueCustomTabsAutosave(
+            $field.closest('.form-field-group').find('.custom-tab-field-status'),
+            10000,
+            false
+        );
+    });
+
+    function updateReorderControls() {
+        var $tabs = $('.custom_tabs_container .custom_tab_fields');
+
+        $tabs.each(function (index) {
+            var $tab = $(this);
+            var isFirst = index === 0;
+            var isLast = index === $tabs.length - 1;
+
+            $tab.find('.move-tab-up')
+                .prop('disabled', isFirst)
+                .attr('aria-disabled', String(isFirst));
+            $tab.find('.move-tab-down')
+                .prop('disabled', isLast)
+                .attr('aria-disabled', String(isLast));
+        });
+    }
 
     // Fungsi untuk menginisialisasi editor
     function initializeEditor(tabId, forceInit = false) {
@@ -251,12 +294,14 @@ jQuery(document).ready(function ($) {
                         var tabId = ui.item.closest('.custom_tab_fields').data('tab');
                         initializeEditor(tabId, true);
                     });
+                    updateReorderControls();
                     queueCustomTabsAutosave();
                 }
             });
         }
     }
 
+    updateReorderControls();
     initSortable();
 
     // Fungsi pembantu untuk memindahkan posisi tab
@@ -284,6 +329,7 @@ jQuery(document).ready(function ($) {
 
         // Re-inisialisasi editor
         initializeEditor($tab.data('tab'), true);
+        updateReorderControls();
         queueCustomTabsAutosave();
     }
 
@@ -363,6 +409,7 @@ jQuery(document).ready(function ($) {
         var $newTab = $(template);
         $('.custom_tabs_container').append($newTab);
 
+        updateReorderControls();
         initializeEditor(tabId, true);
         queueCustomTabsAutosave($newTab.find('.custom-tab-field-status').first());
 
@@ -389,6 +436,7 @@ jQuery(document).ready(function ($) {
                 wp.editor.remove(editorId);
             }
             $tabContainer.remove();
+            updateReorderControls();
             queueCustomTabsAutosave();
         });
     });
@@ -433,5 +481,10 @@ jQuery(document).ready(function ($) {
         var val = $(this).val();
         var defaultLabel = (typeof customTabsData !== 'undefined') ? customTabsData.labels.newTab : 'Tab Baru';
         $(this).closest('.custom_tab_fields').find('.tab-title').text(val || defaultLabel);
+        queueCustomTabsAutosave(
+            $(this).closest('.form-field-group').find('.custom-tab-field-status'),
+            10000,
+            false
+        );
     });
 });

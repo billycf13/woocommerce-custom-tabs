@@ -8,7 +8,7 @@ Plugin WordPress yang memungkinkan Anda menambahkan tab kustom pada halaman prod
 
 - ✨ Tambahkan tab kustom tak terbatas pada setiap produk
 - 📝 Editor visual (TinyMCE) dan mode kode HTML
-- 💾 Autosave tab saat judul atau konten selesai diedit
+- 💾 Autosave tab setelah 10 detik tanpa mengetik atau saat field ditinggalkan
 - 🖼️ Dukungan media uploader untuk menambahkan gambar
 - 📥 Import tab kustom dari file CSV
 - 📤 Export tab kustom ke file CSV
@@ -40,7 +40,7 @@ Plugin WordPress yang memungkinkan Anda menambahkan tab kustom pada halaman prod
    - Judul Tab
    - Konten Tab (mendukung editor visual dan HTML)
    - Prioritas (untuk mengatur urutan)
-5. Judul dan konten tab tersimpan otomatis saat field ditinggalkan; perubahan produk lainnya tetap disimpan dengan tombol Update.
+5. Judul dan konten tab tersimpan otomatis setelah 10 detik tanpa mengetik atau saat field ditinggalkan; perubahan produk lainnya tetap disimpan dengan tombol Update.
 
 ### Import/Export Tab
 
