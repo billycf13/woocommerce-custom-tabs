@@ -12,7 +12,7 @@
  * <li>🔌 Kompatibel dengan WooCommerce HPOS</li>
  * </ul>
  * <em>Plugin ini dibuat untuk memudahkan pengelolaan konten produk WooCommerce Anda.</em>
- * Version: 1.1.0
+ * Version: 1.2.0
  * Author: Billycf
  * Author URI: https://github.com/billycf13
  * Text Domain: custom-product-tabs-importer
