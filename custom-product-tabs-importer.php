@@ -206,7 +206,7 @@ class Custom_Product_Tabs_Importer
                 'custom-tabs-admin',
                 plugins_url('assets/js/admin-tabs.js', __FILE__),
                 array('jquery', 'jquery-ui-sortable', 'wp-editor', 'wp-util', 'quicktags', 'wplink', 'media-upload'),
-                '1.1.1',
+                '1.1.4',
                 true
             );
 
@@ -215,7 +215,7 @@ class Custom_Product_Tabs_Importer
                 'custom-tabs-admin',
                 plugins_url('assets/css/admin-style.css', __FILE__),
                 array(),
-                '1.1.1'
+                '1.1.4'
             );
 
             // Tambahkan data localization untuk JavaScript
@@ -229,7 +229,9 @@ class Custom_Product_Tabs_Importer
                     'code' => __('Code', 'custom-product-tabs-importer'),
                     'saving' => __('Menyimpan...', 'custom-product-tabs-importer'),
                     'saved' => __('Perubahan disimpan', 'custom-product-tabs-importer'),
-                    'saveFailed' => __('Gagal menyimpan perubahan', 'custom-product-tabs-importer')
+                    'saveFailed' => __('Gagal menyimpan perubahan', 'custom-product-tabs-importer'),
+                    'showTabContent' => __('Tampilkan isi tab', 'custom-product-tabs-importer'),
+                    'hideTabContent' => __('Sembunyikan isi tab', 'custom-product-tabs-importer')
                 ),
                 'nonce' => wp_create_nonce('custom_tabs_nonce'),
                 'autosaveNonce' => wp_create_nonce('custom_tabs_autosave'),
@@ -374,11 +376,11 @@ class Custom_Product_Tabs_Importer
                 <div class="tab-reorder-actions">
                     <button type="button" class="move-tab-up button-link"
                         title="<?php esc_attr_e('Pindahkan ke atas', 'custom-product-tabs-importer'); ?>">
-                        <span class="dashicons dashicons-arrow-up-alt2"></span>
+                        <span class="custom-tab-order-icon custom-tab-order-icon-up" aria-hidden="true"></span>
                     </button>
                     <button type="button" class="move-tab-down button-link"
                         title="<?php esc_attr_e('Pindahkan ke bawah', 'custom-product-tabs-importer'); ?>">
-                        <span class="dashicons dashicons-arrow-down-alt2"></span>
+                        <span class="custom-tab-order-icon custom-tab-order-icon-down" aria-hidden="true"></span>
                     </button>
                 </div>
                 <div class="tab-drag-handle">
@@ -389,9 +391,9 @@ class Custom_Product_Tabs_Importer
                         class="tab-title"><?php echo $title ? esc_html($title) : __('Tab Baru', 'custom-product-tabs-importer'); ?></span>
                 </div>
                 <div class="tab-actions">
-                    <button type="button" class="toggle-tab-content button-link"
-                        title="<?php esc_attr_e('Buka/Tutup', 'custom-product-tabs-importer'); ?>">
-                        <span class="dashicons dashicons-arrow-down-alt2"></span>
+                    <button type="button" class="toggle-tab-content button-link" aria-expanded="false"
+                        title="<?php esc_attr_e('Tampilkan isi tab', 'custom-product-tabs-importer'); ?>">
+                        <span class="custom-tab-chevron custom-tab-chevron-down" aria-hidden="true"></span>
                     </button>
                 </div>
             </div>

@@ -317,10 +317,10 @@ jQuery(document).ready(function ($) {
                 <div class="tab-header">
                     <div class="tab-reorder-actions">
                         <button type="button" class="move-tab-up button-link" title="Pindahkan ke atas">
-                            <span class="dashicons dashicons-arrow-up-alt2"></span>
+                            <span class="custom-tab-order-icon custom-tab-order-icon-up" aria-hidden="true"></span>
                         </button>
                         <button type="button" class="move-tab-down button-link" title="Pindahkan ke bawah">
-                            <span class="dashicons dashicons-arrow-down-alt2"></span>
+                            <span class="custom-tab-order-icon custom-tab-order-icon-down" aria-hidden="true"></span>
                         </button>
                     </div>
                     <div class="tab-drag-handle">
@@ -330,8 +330,8 @@ jQuery(document).ready(function ($) {
                         <span class="tab-title">${newTabLabel}</span>
                     </div>
                     <div class="tab-actions">
-                        <button type="button" class="toggle-tab-content button-link">
-                            <span class="dashicons dashicons-arrow-up-alt2"></span>
+                        <button type="button" class="toggle-tab-content button-link" aria-expanded="true" title="${customTabsData.labels.hideTabContent}">
+                            <span class="custom-tab-chevron custom-tab-chevron-up" aria-hidden="true"></span>
                         </button>
                     </div>
                 </div>
@@ -400,7 +400,7 @@ jQuery(document).ready(function ($) {
 
         var $card = $(this).closest('.custom_tab_fields');
         var $content = $card.find('.tab-content-wrapper');
-        var $icon = $(this).find('.dashicons');
+        var $icon = $(this).find('.custom-tab-chevron');
 
         if ($content.is(':animated')) {
             return false;
@@ -410,12 +410,14 @@ jQuery(document).ready(function ($) {
             // Jika sedang aktif, maka kita tutup
             $card.removeClass('active');
             $content.stop(true, true).slideUp(250);
-            $icon.removeClass('dashicons-arrow-up-alt2').addClass('dashicons-arrow-down-alt2');
+            $icon.removeClass('custom-tab-chevron-up').addClass('custom-tab-chevron-down');
+            $(this).attr('aria-expanded', 'false').attr('title', customTabsData.labels.showTabContent);
         } else {
             // Jika sedang tutup, maka kita buka
             $card.addClass('active');
             $content.stop(true, true).slideDown(250);
-            $icon.removeClass('dashicons-arrow-down-alt2').addClass('dashicons-arrow-up-alt2');
+            $icon.removeClass('custom-tab-chevron-down').addClass('custom-tab-chevron-up');
+            $(this).attr('aria-expanded', 'true').attr('title', customTabsData.labels.hideTabContent);
         }
     });
 

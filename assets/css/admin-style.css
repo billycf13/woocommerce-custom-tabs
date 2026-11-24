@@ -154,12 +154,6 @@
     display: none !important;
 }
 
-.tab-reorder-actions .dashicons {
-    font-size: 16px;
-    width: 16px;
-    height: 16px;
-}
-
 .tab-drag-handle {
     color: #8c8f94;
     cursor: grab;
@@ -188,6 +182,9 @@
 }
 
 .tab-actions .button-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     padding: 4px;
     height: auto;
     width: auto;
@@ -205,10 +202,42 @@
     color: var(--danger-color);
 }
 
-.tab-actions .dashicons {
-    font-size: 20px;
-    width: 20px;
-    height: 20px;
+.custom-tab-chevron {
+    display: inline-block;
+    box-sizing: border-box;
+    width: 10px;
+    height: 10px;
+    border-right: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+}
+
+.custom-tab-chevron-down {
+    transform: rotate(45deg);
+}
+
+.custom-tab-chevron-up {
+    transform: rotate(225deg);
+}
+
+.custom-tab-order-icon {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    color: currentColor;
+    font-family: Arial, sans-serif;
+    font-size: 17px;
+    font-weight: 700;
+    line-height: 14px;
+    text-align: center;
+    -webkit-text-stroke: 0.35px currentColor;
+}
+
+.custom-tab-order-icon-up::before {
+    content: "\2191";
+}
+
+.custom-tab-order-icon-down::before {
+    content: "\2193";
 }
 
 /* Content wrapper */
